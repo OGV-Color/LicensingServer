@@ -29,7 +29,9 @@ SECRET_KEY = "django-insecure-hm4e7my#u09%)^#q^9w5e5$)8a&o@+#sw52e=o@(%oqwgerd(f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["licensing.ogvcolor.cloud"]
+
+CSRF_TRUSTED_ORIGINS = ["https://licensing.ogvcolor.cloud"]
 
 
 # Application definition
