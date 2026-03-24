@@ -4,6 +4,7 @@ from inspect import signature
 
 from django.conf import settings
 from django.utils import timezone
+from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,6 +15,10 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from .models import License, Activation
 
 PRIVATE_KEY_PATH = getattr(settings, "LICENSE_PRIVATE_KEY_PATH", None)
+
+
+def health(request):
+    return JsonResponse({"status": "ok"})
 
 def sign_payload(payload_json: str) -> str:
     with open(PRIVATE_KEY_PATH, "rb") as f:

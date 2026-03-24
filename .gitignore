@@ -70,3 +70,16 @@ pip-wheel-metadata/
 # =========================
 *.sql
 *.dump
+
+# Environments
+.env
+.env.demo
+#.env.development
+#.env.production
+.venv
+venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
