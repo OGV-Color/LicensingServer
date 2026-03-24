@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/johnn/OneDrive/Documentos/DeltaE/Project/LicensingServer -maxdepth 3 ! -path */venv/* -type d)",
+      "Bash(venv/Scripts/python manage.py migrate)",
+      "Bash(net stop:*)",
+      "Bash(net start:*)"
+    ]
+  }
+}
