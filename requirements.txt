@@ -3,6 +3,8 @@ cffi==2.0.0
 cryptography==46.0.5
 Django==5.2.10
 djangorestframework==3.14.0
+gunicorn==25.1.0
+packing=26.0
 psycopg2-binary==2.9.10
 pycparser==3.0
 python-dotenv==1.0.0
