@@ -34,7 +34,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["licensing.ogvcolor.cloud"]
+
+CSRF_TRUSTED_ORIGINS = ["https://licensing.ogvcolor.cloud"]
 
 
 # Application definition
