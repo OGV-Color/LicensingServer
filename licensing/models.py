@@ -28,3 +28,24 @@ class Activation(models.Model):
 
     def __str__(self) -> str:
         return f"{self.license.key} -> {self.fingerprint[:12]}..."
+
+class Device(models.Model):
+    license = models.ForeignKey(
+        License,
+        on_delete=models.CASCADE,
+        related_name="devices"
+    )
+    serial = models.CharField(max_length=128)
+    revoked = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["license", "serial"],
+                name="unique_license_device"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.serial} -> {self.license.key}"

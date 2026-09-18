@@ -12,7 +12,7 @@ from rest_framework import status
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from .models import License, Activation
+from .models import License, Activation, Device
 
 PRIVATE_KEY_PATH = getattr(settings, "LICENSE_PRIVATE_KEY_PATH", None)
 
@@ -33,11 +33,46 @@ def sign_payload(payload_json: str) -> str:
 
     return base64.b64encode(signature_bytes).decode("utf-8")
 
+@api_view(["POST"])
+def validate_device(request):
+    license_key_id = request.data.get("licenseKeyId")
+    device_serial = request.data.get("deviceSerial")
+
+    if not license_key_id or not device_serial:
+        return Response({
+            "authorized": False,
+            "reason": "missing_data"
+        }, status=400)
+
+    try:
+        license_id = int(license_key_id.replace("LIC_", ""))
+
+        device = Device.objects.get(
+            license_id=license_id,
+            serial=device_serial
+        )
+
+        if device.revoked:
+            return Response({
+                "authorized": False,
+                "reason": "device_revoked"
+            })
+
+        return Response({
+            "authorized": True
+        })
+
+    except Device.DoesNotExist:
+        return Response({
+            "authorized": False,
+            "reason": "device_not_authorized"
+        })
 
 @api_view(["POST"])
 def activate(request):
     license_key = request.data.get("licenseKey")
     fingerprint = request.data.get("fingerprint")
+    device_serial = request.data.get("deviceSerial")
 
     if not license_key or not fingerprint:
         return Response(
@@ -79,12 +114,30 @@ def activate(request):
         act.last_seen_at = timezone.now()
         act.save(update_fields=["last_seen_at"])
 
+    # payload = {
+    #     "app": "OGVColorCatcher",
+    #     "customerId": lic.customer_id,
+    #     "licenseKeyId": f"LIC_{lic.id}",
+    #     "fingerprint": fingerprint,
+    #     "expiresAt": (lic.expires_at.isoformat().replace("+00:00", "Z") if lic.expires_at else None),
+    #     "features": ["PRO"],
+    #     "issuedAt": timezone.now().isoformat().replace("+00:00", "Z"),
+    # }
+
+    devices = list(
+        lic.devices.values_list("serial", flat=True)
+    )
+
     payload = {
         "app": "OGVColorCatcher",
         "customerId": lic.customer_id,
         "licenseKeyId": f"LIC_{lic.id}",
         "fingerprint": fingerprint,
-        "expiresAt": (lic.expires_at.isoformat().replace("+00:00", "Z") if lic.expires_at else None),
+        "devices": devices,
+        "expiresAt": (
+            lic.expires_at.isoformat().replace("+00:00", "Z")
+            if lic.expires_at else None
+        ),
         "features": ["PRO"],
         "issuedAt": timezone.now().isoformat().replace("+00:00", "Z"),
     }
@@ -105,30 +158,59 @@ def validate_license(request):
         return timezone.now().isoformat().replace("+00:00", "Z")
 
     if not license_key_id or not fingerprint:
-        return Response({"valid": False, "reason": "missing_data", "serverUtc": now_z()}, status=400)
+        return Response({
+            "valid": False,
+            "reason": "missing_data",
+            "serverUtc": now_z()
+        }, status=400)
 
     if not str(license_key_id).startswith("LIC_"):
-        return Response({"valid": False, "reason": "invalid_license_id", "serverUtc": now_z()}, status=400)
+        return Response({
+            "valid": False,
+            "reason": "invalid_license_id",
+            "serverUtc": now_z()
+        }, status=400)
 
     try:
         license_id = int(str(license_key_id).replace("LIC_", ""))
         lic = License.objects.get(id=license_id)
     except (ValueError, License.DoesNotExist):
-        return Response({"valid": False, "reason": "not_found", "serverUtc": now_z()}, status=404)
+        return Response({
+            "valid": False,
+            "reason": "not_found",
+            "serverUtc": now_z()
+        }, status=404)
 
     if lic.is_revoked:
-        return Response({"valid": False, "reason": "revoked", "serverUtc": now_z()})
+        return Response({
+            "valid": False,
+            "reason": "revoked",
+            "serverUtc": now_z()
+        })
 
     if lic.expires_at and lic.expires_at < timezone.now():
-        return Response({"valid": False, "reason": "expired", "serverUtc": now_z()})
+        return Response({
+            "valid": False,
+            "reason": "expired",
+            "serverUtc": now_z()
+        })
 
-    # ✅ NOVO: Verificar se fingerprint bate
-    exists = Activation.objects.filter(license=lic, fingerprint=fingerprint).exists()
+    exists = Activation.objects.filter(
+        license=lic,
+        fingerprint=fingerprint
+    ).exists()
+
     if not exists:
-        return Response({"valid": False, "reason": "fingerprint_mismatch", "serverUtc": now_z()})
+        return Response({
+            "valid": False,
+            "reason": "fingerprint_mismatch",
+            "serverUtc": now_z()
+        })
 
-    return Response({"valid": True, "serverUtc": now_z()})
-
+    return Response({
+        "valid": True,
+        "serverUtc": now_z()
+    })
 
 @api_view(["POST"])
 def deactivate(request):
