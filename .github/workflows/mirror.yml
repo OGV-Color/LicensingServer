@@ -6,6 +6,7 @@ on:
     tags: ["**"]
   delete:
   create:
+  workflow_dispatch:
 
 jobs:
   mirror:
